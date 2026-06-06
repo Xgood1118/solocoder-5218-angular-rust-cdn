@@ -1,7 +1,3 @@
-
-
-# Large build artifacts
-# SoloCoder eval data
 **/*.aab
 **/*.apk
 **/*.dll
@@ -25,14 +21,21 @@
 **/tracker-*.jar
 **/tracker-*.jar.original
 **/vendor/
-*.exe
+*.db
+*.egg-info/
 *.local
+*.py[cod]
+*.sqlite
+.DS_Store
 .angular/
 .env
+.gradle/
+.venv/
 /target/
-Cargo.lock
 NEXT_PROMPT_R*.txt
 PROMPT.txt
+__pycache__/
 dist/
 node_modules/
 screenshot_R*.png
+venv/
