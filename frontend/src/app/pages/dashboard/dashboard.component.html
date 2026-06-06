@@ -1,0 +1,176 @@
+<div class="page-container">
+  <div class="toolbar">
+    <h2 class="page-title">统计概览</h2>
+    <div class="toolbar-right">
+      <nz-select
+        style="width: 120px"
+        [ngModel]="selectedRegion || '全部'"
+        (ngModelChange)="onRegionChange($event)"
+      >
+        <nz-option *ngFor="let r of regions" [nzValue]="r" [nzLabel]="r"></nz-option>
+      </nz-select>
+      <button nz-button nzType="primary" (click)="exportReport()">
+        <i nz-icon nzType="download"></i>
+        导出报表
+      </button>
+    </div>
+  </div>
+
+  <div nz-row [nzGutter]="16">
+    <div nz-col [nzSpan]="6">
+      <div class="stat-card">
+        <div class="stat-card-title">总资源数</div>
+        <div class="stat-card-value">{{ overview?.total_resources || 0 }}</div>
+      </div>
+    </div>
+    <div nz-col [nzSpan]="6">
+      <div class="stat-card">
+        <div class="stat-card-title">总节点数</div>
+        <div class="stat-card-value">{{ overview?.total_nodes || 0 }}</div>
+      </div>
+    </div>
+    <div nz-col [nzSpan]="6">
+      <div class="stat-card">
+        <div class="stat-card-title">全网命中率</div>
+        <div class="stat-card-value" style="color: #52c41a;">
+          {{ formatPercent(overview?.overall_hit_rate || 0) }}
+        </div>
+      </div>
+    </div>
+    <div nz-col [nzSpan]="6">
+      <div class="stat-card">
+        <div class="stat-card-title">今日请求量</div>
+        <div class="stat-card-value">{{ overview?.total_requests_today || 0 }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div nz-row [nzGutter]="16" style="margin-top: 16px;">
+    <div nz-col [nzSpan]="6">
+      <div class="stat-card">
+        <div class="stat-card-title">进行中预热任务</div>
+        <div class="stat-card-value" style="color: #1890ff; font-size: 22px;">
+          {{ overview?.active_preheat_tasks || 0 }}
+        </div>
+      </div>
+    </div>
+    <div nz-col [nzSpan]="6">
+      <div class="stat-card">
+        <div class="stat-card-title">进行中清理任务</div>
+        <div class="stat-card-value" style="color: #fa8c16; font-size: 22px;">
+          {{ overview?.active_purge_tasks || 0 }}
+        </div>
+      </div>
+    </div>
+    <div nz-col [nzSpan]="6">
+      <div class="stat-card">
+        <div class="stat-card-title">今日命中数</div>
+        <div class="stat-card-value" style="color: #52c41a; font-size: 22px;">
+          {{ overview?.total_hits_today || 0 }}
+        </div>
+      </div>
+    </div>
+    <div nz-col [nzSpan]="6">
+      <div class="stat-card">
+        <div class="stat-card-title">今日未命中</div>
+        <div class="stat-card-value" style="color: #ff4d4f; font-size: 22px;">
+          {{ (overview?.total_requests_today || 0) - (overview?.total_hits_today || 0) }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div nz-row [nzGutter]="16" style="margin-top: 16px;">
+    <div nz-col [nzSpan]="16">
+      <div class="stat-card">
+        <h3 style="margin-bottom: 16px;">近 7 天请求量趋势</h3>
+        <div echarts [options]="trendChartOption" class="chart-container" style="height: 320px;"></div>
+      </div>
+    </div>
+    <div nz-col [nzSpan]="8">
+      <div class="stat-card">
+        <h3 style="margin-bottom: 16px;">TOP 10 热门资源</h3>
+        <nz-list [nzDataSource]="overview?.top_hot_resources || []" nzSize="small">
+          <nz-list-item *nzListItem="let item; let i = index">
+            <span style="display: flex; align-items: center; width: 100%;">
+              <nz-badge
+                [nzCount]="i + 1"
+                [nzStyle]="{ backgroundColor: i < 3 ? '#f5222d' : '#1890ff' }"
+                style="margin-right: 12px;"
+              ></nz-badge>
+              <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                {{ item[0] }}
+              </span>
+              <span style="color: #8c8c8c;">{{ item[1] }} 次</span>
+            </span>
+          </nz-list-item>
+        </nz-list>
+      </div>
+    </div>
+  </div>
+
+  <div nz-row [nzGutter]="16" style="margin-top: 16px;">
+    <div nz-col [nzSpan]="12">
+      <div class="stat-card">
+        <h3 style="margin-bottom: 16px;">各节点命中率</h3>
+        <div echarts [options]="hitRateChartOption" class="chart-container" style="height: 300px;"></div>
+      </div>
+    </div>
+    <div nz-col [nzSpan]="12">
+      <div class="stat-card">
+        <h3 style="margin-bottom: 16px;">各节点容量使用率</h3>
+        <div echarts [options]="capacityChartOption" class="chart-container" style="height: 300px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div nz-row [nzGutter]="16" style="margin-top: 16px;">
+    <div nz-col [nzSpan]="12">
+      <div class="stat-card">
+        <h3 style="margin-bottom: 16px;">TOP 10 冷门资源</h3>
+        <nz-list [nzDataSource]="overview?.top_cold_resources || []" nzSize="small">
+          <nz-list-item *nzListItem="let item; let i = index">
+            <span style="display: flex; align-items: center; width: 100%;">
+              <span style="width: 24px; color: #8c8c8c;">{{ i + 1 }}</span>
+              <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                {{ item[0] }}
+              </span>
+              <span style="color: #8c8c8c;">{{ item[1] }} 次</span>
+            </span>
+          </nz-list-item>
+        </nz-list>
+      </div>
+    </div>
+    <div nz-col [nzSpan]="12">
+      <div class="stat-card">
+        <h3 style="margin-bottom: 16px;">时间维度命中率</h3>
+        <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+          <div style="flex: 1; text-align: center; padding: 16px; background: #f6ffed; border-radius: 8px;">
+            <div style="font-size: 12px; color: #8c8c8c; margin-bottom: 8px;">近 1 小时</div>
+            <div style="font-size: 24px; font-weight: 600; color: #52c41a;">
+              <ng-container *ngIf="hitRateByTime && hitRateByTime.length > 0">
+                {{ (getHitRateByKey('近1小时') * 100).toFixed(1) }}%
+              </ng-container>
+            </div>
+          </div>
+          <div style="flex: 1; text-align: center; padding: 16px; background: #e6f7ff; border-radius: 8px;">
+            <div style="font-size: 12px; color: #8c8c8c; margin-bottom: 8px;">近 24 小时</div>
+            <div style="font-size: 24px; font-weight: 600; color: #1890ff;">
+              <ng-container *ngIf="hitRateByTime && hitRateByTime.length > 0">
+                {{ (getHitRateByKey('近24小时') * 100).toFixed(1) }}%
+              </ng-container>
+            </div>
+          </div>
+          <div style="flex: 1; text-align: center; padding: 16px; background: #fff7e6; border-radius: 8px;">
+            <div style="font-size: 12px; color: #8c8c8c; margin-bottom: 8px;">近 7 天</div>
+            <div style="font-size: 24px; font-weight: 600; color: #fa8c16;">
+              <ng-container *ngIf="hitRateByTime && hitRateByTime.length > 0">
+                {{ (getHitRateByKey('近7天') * 100).toFixed(1) }}%
+              </ng-container>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

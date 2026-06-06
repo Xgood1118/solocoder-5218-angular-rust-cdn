@@ -1,0 +1,213 @@
+<div class="page-container">
+  <div class="toolbar">
+    <h2 class="page-title">节点管理</h2>
+    <div class="toolbar-right">
+      <nz-select
+        style="width: 120px;"
+        [ngModel]="selectedRegion || '全部'"
+        (ngModelChange)="onRegionChange($event)"
+      >
+        <nz-option *ngFor="let r of regions" [nzValue]="r" [nzLabel]="r"></nz-option>
+      </nz-select>
+      <nz-select
+        style="width: 120px;"
+        [ngModel]="selectedStatus || ''"
+        (ngModelChange)="onStatusChange($event)"
+      >
+        <nz-option *ngFor="let s of statuses" [nzValue]="s.value" [nzLabel]="s.label"></nz-option>
+      </nz-select>
+      <button nz-button nzType="primary" (click)="openCreate()">
+        <i nz-icon nzType="plus"></i>
+        添加节点
+      </button>
+    </div>
+  </div>
+
+  <div class="content-panel">
+    <nz-table
+      #basicTable
+      [nzData]="nodes"
+      [nzLoading]="loading"
+      [nzFrontPagination]="false"
+      [nzTotal]="total"
+      [nzPageSize]="pageSize"
+      [nzPageIndex]="page"
+      (nzPageIndexChange)="onPageChange($event)"
+    >
+      <thead>
+        <tr>
+          <th>节点名称</th>
+          <th>区域</th>
+          <th>运营商</th>
+          <th>容量</th>
+          <th>资源数</th>
+          <th>状态</th>
+          <th>心跳时间</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of nodes">
+          <td>
+            <div style="display: flex; align-items: center;">
+              <i nz-icon nzType="cloud-server" style="margin-right: 8px; color: #1890ff;"></i>
+              <strong>{{ item.node.name }}</strong>
+            </div>
+            <div style="font-size: 12px; color: #8c8c8c; margin-top: 4px;">
+              {{ item.node.datacenter_address }}
+            </div>
+          </td>
+          <td>
+            <nz-tag>{{ item.node.region }}</nz-tag>
+          </td>
+          <td>{{ item.node.carrier }}</td>
+          <td style="width: 180px;">
+            <nz-progress
+              [nzPercent]="getCapacityPercent(item.node)"
+              nzSize="small"
+              [nzShowInfo]="false"
+              style="width: 100px; display: inline-block; vertical-align: middle; margin-right: 8px;"
+            ></nz-progress>
+            <span style="font-size: 12px;">{{ formatSizeGB(item.node.used_gb) }}/{{ formatSizeGB(item.node.capacity_gb) }}</span>
+          </td>
+          <td>{{ item.resource_count }}</td>
+          <td>
+            <nz-badge [nzStatus]="getStatusColor(item.node.status)" [nzText]="getStatusText(item.node.status)"></nz-badge>
+          </td>
+          <td style="font-size: 12px; color: #8c8c8c;">
+            {{ item.node.heartbeat_at | date: 'yyyy-MM-dd HH:mm' }}
+          </td>
+          <td>
+            <nz-dropdown>
+              <a nz-dropdown>
+                更多 <i nz-icon nzType="down"></i>
+              </a>
+              <ul nz-menu>
+                <li nz-menu-item (click)="viewNode(item)">
+                  <i nz-icon nzType="eye"></i> 查看详情
+                </li>
+                <li nz-menu-item (click)="changeStatus(item, 'online')" *ngIf="item.node.status !== 'online'">
+                  <i nz-icon nzType="play-circle"></i> 上线
+                </li>
+                <li nz-menu-item (click)="changeStatus(item, 'offline')" *ngIf="item.node.status !== 'offline'">
+                  <i nz-icon nzType="pause-circle"></i> 下线
+                </li>
+                <li nz-menu-item (click)="changeStatus(item, 'maintenance')" *ngIf="item.node.status !== 'maintenance'">
+                  <i nz-icon nzType="tool"></i> 设为维护
+                </li>
+                <li nz-menu-divider></li>
+                <li nz-menu-item style="color: #ff4d4f;" (click)="deleteNode(item)">
+                  <i nz-icon nzType="delete"></i> 删除
+                </li>
+              </ul>
+            </nz-dropdown>
+          </td>
+        </tr>
+      </tbody>
+    </nz-table>
+  </div>
+</div>
+
+<nz-modal
+  [(nzVisible)]="createVisible"
+  nzTitle="添加节点"
+  [nzWidth]="500"
+  nzOkText="创建"
+  nzCancelText="取消"
+  (nzOnOk)="doCreate()"
+  (nzOnCancel)="closeCreate()"
+>
+  <form nz-form>
+    <nz-form-item>
+      <nz-form-label nzRequired>节点名称</nz-form-label>
+      <nz-form-control>
+        <input type="text" nz-input [(ngModel)]="createForm.name" name="name" placeholder="请输入节点名称">
+      </nz-form-control>
+    </nz-form-item>
+    <nz-form-item>
+      <nz-form-label nzRequired>所在区域</nz-form-label>
+      <nz-form-control>
+        <nz-select [(ngModel)]="createForm.region" name="region" style="width: 100%;">
+          <nz-option *ngFor="let r of REGIONS" [nzValue]="r" [nzLabel]="r"></nz-option>
+        </nz-select>
+      </nz-form-control>
+    </nz-form-item>
+    <nz-form-item>
+      <nz-form-label nzRequired>机房地址</nz-form-label>
+      <nz-form-control>
+        <input type="text" nz-input [(ngModel)]="createForm.datacenter_address" name="datacenter_address" placeholder="请输入机房地址">
+      </nz-form-control>
+    </nz-form-item>
+    <nz-form-item>
+      <nz-form-label nzRequired>运营商</nz-form-label>
+      <nz-form-control>
+        <nz-select [(ngModel)]="createForm.carrier" name="carrier" style="width: 100%;">
+          <nz-option *ngFor="let c of CARRIERS" [nzValue]="c" [nzLabel]="c"></nz-option>
+        </nz-select>
+      </nz-form-control>
+    </nz-form-item>
+    <nz-form-item>
+      <nz-form-label nzRequired>容量上限 (GB)</nz-form-label>
+      <nz-form-control>
+        <input type="number" nz-input [(ngModel)]="createForm.capacity_gb" name="capacity_gb">
+      </nz-form-control>
+    </nz-form-item>
+  </form>
+</nz-modal>
+
+<nz-modal
+  [(nzVisible)]="detailVisible"
+  nzTitle="节点详情"
+  [nzWidth]="800"
+  nzOkText="关闭"
+  [nzFooter]="null"
+  (nzOnCancel)="closeDetail()"
+>
+  <div *ngIf="selectedNode" style="margin-bottom: 16px;">
+    <nz-descriptions nzBordered [nzColumn]="2" nzSize="small">
+      <nz-descriptions-item nzTitle="节点名称">{{ selectedNode.node.name }}</nz-descriptions-item>
+      <nz-descriptions-item nzTitle="状态">
+        <nz-badge [nzStatus]="getStatusColor(selectedNode.node.status)" [nzText]="getStatusText(selectedNode.node.status)"></nz-badge>
+      </nz-descriptions-item>
+      <nz-descriptions-item nzTitle="区域">{{ selectedNode.node.region }}</nz-descriptions-item>
+      <nz-descriptions-item nzTitle="运营商">{{ selectedNode.node.carrier }}</nz-descriptions-item>
+      <nz-descriptions-item nzTitle="机房地址">{{ selectedNode.node.datacenter_address }}</nz-descriptions-item>
+      <nz-descriptions-item nzTitle="容量">
+        {{ formatSizeGB(selectedNode.node.used_gb) }} / {{ formatSizeGB(selectedNode.node.capacity_gb) }}
+      </nz-descriptions-item>
+      <nz-descriptions-item nzTitle="资源数量">{{ selectedNode.resource_count }}</nz-descriptions-item>
+      <nz-descriptions-item nzTitle="心跳时间">
+        {{ selectedNode.node.heartbeat_at | date: 'yyyy-MM-dd HH:mm:ss' }}
+      </nz-descriptions-item>
+    </nz-descriptions>
+  </div>
+
+  <h4 style="margin-bottom: 12px;">节点上的资源</h4>
+  <nz-table [nzData]="nodeResources" nzSize="small" [nzFrontPagination]="false" [nzShowPagination]="false">
+    <thead>
+      <tr>
+        <th>资源名称</th>
+        <th>大小</th>
+        <th>命中</th>
+        <th>未命中</th>
+        <th>命中率</th>
+        <th>最近访问</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let r of nodeResources">
+        <td>{{ r.resource.original_filename }}</td>
+        <td>{{ r.resource.size_bytes | number }}</td>
+        <td>{{ r.hit_count }}</td>
+        <td>{{ r.miss_count }}</td>
+        <td>
+          <nz-progress [nzPercent]="r.hit_rate * 100" nzSize="small" [nzShowInfo]="false" style="width: 80px;"></nz-progress>
+          <span style="font-size: 12px; margin-left: 8px;">{{ (r.hit_rate * 100).toFixed(1) }}%</span>
+        </td>
+        <td style="font-size: 12px; color: #8c8c8c;">
+          {{ r.last_accessed_at ? (r.last_accessed_at | date: 'MM-dd HH:mm') : '从未访问' }}
+        </td>
+      </tr>
+    </tbody>
+  </nz-table>
+</nz-modal>

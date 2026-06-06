@@ -1,0 +1,166 @@
+<div class="page-container">
+  <div class="toolbar">
+    <h2 class="page-title">预热管理</h2>
+    <div class="toolbar-right">
+      <nz-select
+        style="width: 140px;"
+        [ngModel]="selectedStatus"
+        (ngModelChange)="onStatusChange($event)"
+      >
+        <nz-option *ngFor="let s of statusOptions" [nzValue]="s.value" [nzLabel]="s.label"></nz-option>
+      </nz-select>
+      <button nz-button nzType="primary" (click)="openCreate()">
+        <i nz-icon nzType="plus"></i>
+        新建预热
+      </button>
+    </div>
+  </div>
+
+  <div class="content-panel">
+    <nz-table
+      #basicTable
+      [nzData]="tasks"
+      [nzLoading]="loading"
+      [nzFrontPagination]="false"
+      [nzTotal]="total"
+      [nzPageSize]="pageSize"
+      [nzPageIndex]="page"
+      (nzPageIndexChange)="onPageChange($event)"
+    >
+      <thead>
+        <tr>
+          <th>任务ID</th>
+          <th>资源数量</th>
+          <th>节点数量</th>
+          <th>优先级</th>
+          <th>进度</th>
+          <th>状态</th>
+          <th>预估耗时</th>
+          <th>创建时间</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let task of tasks">
+          <td style="font-family: monospace; font-size: 12px;">
+            {{ task.task_id.substring(0, 8) }}...
+          </td>
+          <td>{{ task.resource_ids.length }} 个</td>
+          <td>{{ task.node_ids.length }} 个</td>
+          <td>
+            <nz-tag [nzColor]="getPriorityColor(task.priority)">
+              {{ getPriorityText(task.priority) }}
+            </nz-tag>
+          </td>
+          <td style="width: 200px;">
+            <nz-progress
+              [nzPercent]="getProgress(task)"
+              nzSize="small"
+              [nzStatus]="task.status === 'failed' ? 'exception' : task.status === 'done' ? 'success' : 'active'"
+            ></nz-progress>
+            <div style="font-size: 12px; color: #8c8c8c; text-align: center;">
+              {{ task.done }} 成功 / {{ task.failed }} 失败 / 共 {{ task.total }}
+            </div>
+          </td>
+          <td>
+            <nz-tag [nzColor]="getStatusColor(task.status)">
+              {{ getStatusText(task.status) }}
+            </nz-tag>
+          </td>
+          <td>{{ formatDuration(task.estimated_duration_secs) }}</td>
+          <td style="font-size: 12px; color: #8c8c8c;">
+            {{ task.created_at | date: 'MM-dd HH:mm' }}
+          </td>
+          <td>
+            <button
+              nz-button
+              nzSize="small"
+              *ngIf="canCancel(task)"
+              (click)="cancelTask(task)"
+            >
+              取消
+            </button>
+            <button
+              nz-button
+              nzSize="small"
+              nzType="primary"
+              *ngIf="canRetry(task)"
+              (click)="retryTask(task)"
+            >
+              重试失败
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </nz-table>
+  </div>
+</div>
+
+<nz-modal
+  [(nzVisible)]="createVisible"
+  nzTitle="新建预热任务"
+  [nzWidth]="600"
+  nzOkText="创建"
+  nzCancelText="取消"
+  (nzOnOk)="doCreate()"
+  (nzOnCancel)="closeCreate()"
+>
+  <form nz-form>
+    <nz-form-item>
+      <nz-form-label nzRequired>选择资源</nz-form-label>
+      <nz-form-control>
+        <nz-select
+          nzMode="multiple"
+          style="width: 100%;"
+          nzPlaceHolder="请选择要预热的资源"
+          [(ngModel)]="createForm.resource_ids"
+          name="resource_ids"
+          nzMaxMultipleCount="3"
+        >
+          <nz-option
+            *ngFor="let r of resourceOptions"
+            [nzValue]="r.value"
+            [nzLabel]="r.label"
+          ></nz-option>
+        </nz-select>
+      </nz-form-control>
+    </nz-form-item>
+
+    <nz-form-item>
+      <nz-form-label nzRequired>目标节点</nz-form-label>
+      <nz-form-control>
+        <nz-select
+          nzMode="multiple"
+          style="width: 100%;"
+          nzPlaceHolder="请选择目标节点"
+          [(ngModel)]="createForm.node_ids"
+          name="node_ids"
+          nzMaxMultipleCount="3"
+        >
+          <nz-option
+            *ngFor="let n of nodeOptions"
+            [nzValue]="n.value"
+            [nzLabel]="n.label"
+          ></nz-option>
+        </nz-select>
+      </nz-form-control>
+    </nz-form-item>
+
+    <nz-form-item>
+      <nz-form-label>优先级</nz-form-label>
+      <nz-form-control>
+        <nz-radio-group [(ngModel)]="createForm.priority" name="priority">
+          <label nz-radio nzValue="low">低</label>
+          <label nz-radio nzValue="medium">中</label>
+          <label nz-radio nzValue="high">高</label>
+        </nz-radio-group>
+      </nz-form-control>
+    </nz-form-item>
+
+    <nz-alert
+      nzType="info"
+      nzShowIcon
+      nzMessage="高优先级任务会插队执行，低优先级任务会排队等待"
+    ></nz-alert>
+  </form>
+</nz-modal>

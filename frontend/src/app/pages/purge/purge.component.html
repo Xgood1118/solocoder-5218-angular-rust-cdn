@@ -1,0 +1,288 @@
+<div class="page-container">
+  <div class="toolbar">
+    <h2 class="page-title">清理管理</h2>
+    <div class="toolbar-right">
+      <nz-select
+        style="width: 140px;"
+        [ngModel]="selectedType"
+        (ngModelChange)="onTypeChange($event)"
+      >
+        <nz-option *ngFor="let t of typeOptions" [nzValue]="t.value" [nzLabel]="t.label"></nz-option>
+      </nz-select>
+      <nz-select
+        style="width: 140px;"
+        [ngModel]="selectedStatus"
+        (ngModelChange)="onStatusChange($event)"
+      >
+        <nz-option *ngFor="let s of statusOptions" [nzValue]="s.value" [nzLabel]="s.label"></nz-option>
+      </nz-select>
+      <button nz-button nzType="primary" (click)="openCreate()">
+        <i nz-icon nzType="plus"></i>
+        新建清理
+      </button>
+    </div>
+  </div>
+
+  <div class="content-panel">
+    <nz-table
+      #basicTable
+      [nzData]="tasks"
+      [nzLoading]="loading"
+      [nzFrontPagination]="false"
+      [nzTotal]="total"
+      [nzPageSize]="pageSize"
+      [nzPageIndex]="page"
+      (nzPageIndexChange)="onPageChange($event)"
+    >
+      <thead>
+        <tr>
+          <th>任务ID</th>
+          <th>清理类型</th>
+          <th>范围</th>
+          <th>资源类型筛选</th>
+          <th>进度</th>
+          <th>状态</th>
+          <th>创建人</th>
+          <th>创建时间</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let task of tasks">
+          <td style="font-family: monospace; font-size: 12px;">
+            {{ task.task_id.substring(0, 8) }}...
+          </td>
+          <td>
+            <span style="display: flex; align-items: center;">
+              <i nz-icon [nzType]="getTypeIcon(task.purge_type)" style="margin-right: 6px; color: #1890ff;"></i>
+              {{ getTypeText(task.purge_type) }}
+            </span>
+          </td>
+          <td>
+            <ng-container [ngSwitch]="task.purge_type">
+              <span *ngSwitchCase="'by_node'">{{ task.node_ids.length }} 个节点</span>
+              <span *ngSwitchCase="'by_resource'">{{ task.resource_ids.length }} 个资源</span>
+              <span *ngSwitchCase="'by_time'">{{ task.days_not_accessed }} 天未访问</span>
+            </ng-container>
+          </td>
+          <td>
+            <ng-container *ngIf="task.mime_types && task.mime_types.length > 0">
+              <nz-tag *ngFor="let m of task.mime_types.slice(0, 2)" nzColor="blue" style="margin-right: 4px;">
+                {{ m }}
+              </nz-tag>
+              <span *ngIf="task.mime_types.length > 2" style="font-size: 12px; color: #8c8c8c;">
+                +{{ task.mime_types.length - 2 }}
+              </span>
+            </ng-container>
+            <span *ngIf="!task.mime_types || task.mime_types.length === 0" style="color: #8c8c8c;">
+              全部
+            </span>
+          </td>
+          <td style="width: 150px;">
+            <nz-progress
+              [nzPercent]="getProgress(task)"
+              nzSize="small"
+              [nzStatus]="task.status === 'failed' ? 'exception' : task.status === 'done' ? 'success' : 'active'"
+            ></nz-progress>
+            <div style="font-size: 12px; color: #8c8c8c; text-align: center;">
+              {{ task.done }} / {{ task.total }}
+            </div>
+          </td>
+          <td>
+            <nz-tag [nzColor]="getStatusColor(task.status)">
+              {{ getStatusText(task.status) }}
+            </nz-tag>
+          </td>
+          <td>{{ task.created_by }}</td>
+          <td style="font-size: 12px; color: #8c8c8c;">
+            {{ task.created_at | date: 'MM-dd HH:mm' }}
+          </td>
+        </tr>
+      </tbody>
+    </nz-table>
+  </div>
+</div>
+
+<nz-modal
+  [(nzVisible)]="createVisible"
+  nzTitle="新建清理任务"
+  [nzWidth]="600"
+  nzOkText="创建"
+  nzCancelText="取消"
+  (nzOnOk)="doCreate()"
+  (nzOnCancel)="closeCreate()"
+>
+  <form nz-form>
+    <nz-form-item>
+      <nz-form-label nzRequired>清理类型</nz-form-label>
+      <nz-form-control>
+        <nz-radio-group [(ngModel)]="createForm.purge_type" name="purge_type">
+          <label nz-radio nzValue="by_node">按节点</label>
+          <label nz-radio nzValue="by_resource">按资源</label>
+          <label nz-radio nzValue="by_time">按时间</label>
+        </nz-radio-group>
+      </nz-form-control>
+    </nz-form-item>
+
+    <nz-form-item *ngIf="createForm.purge_type === 'by_node' || createForm.purge_type === 'by_time'">
+      <nz-form-label nzRequired>目标节点</nz-form-label>
+      <nz-form-control>
+        <nz-select
+          nzMode="multiple"
+          style="width: 100%;"
+          nzPlaceHolder="请选择节点"
+          [(ngModel)]="createForm.node_ids"
+          name="node_ids"
+        >
+          <nz-option
+            *ngFor="let n of nodeOptions"
+            [nzValue]="n.value"
+            [nzLabel]="n.label"
+          ></nz-option>
+        </nz-select>
+      </nz-form-control>
+    </nz-form-item>
+
+    <nz-form-item *ngIf="createForm.purge_type === 'by_resource'">
+      <nz-form-label nzRequired>选择资源</nz-form-label>
+      <nz-form-control>
+        <nz-select
+          nzMode="multiple"
+          style="width: 100%;"
+          nzPlaceHolder="请选择要清理的资源"
+          [(ngModel)]="createForm.resource_ids"
+          name="resource_ids"
+        >
+          <nz-option
+            *ngFor="let r of resourceOptions"
+            [nzValue]="r.value"
+            [nzLabel]="r.label"
+          ></nz-option>
+        </nz-select>
+      </nz-form-control>
+    </nz-form-item>
+
+    <nz-form-item *ngIf="createForm.purge_type === 'by_time'">
+      <nz-form-label nzRequired>未访问天数</nz-form-label>
+      <nz-form-control>
+        <nz-input-number
+          [(ngModel)]="createForm.days_not_accessed"
+          name="days_not_accessed"
+          [nzMin]="1"
+          [nzMax]="365"
+          style="width: 100%;"
+        ></nz-input-number>
+        <div style="font-size: 12px; color: #8c8c8c; margin-top: 4px;">
+          清理指定天数内未被访问过的资源
+        </div>
+      </nz-form-control>
+    </nz-form-item>
+
+    <nz-form-item>
+      <nz-form-label>资源类型筛选</nz-form-label>
+      <nz-form-control>
+        <nz-select
+          nzMode="multiple"
+          style="width: 100%;"
+          nzPlaceHolder="不选则清理全部类型"
+          [(ngModel)]="createForm.mime_types"
+          name="mime_types"
+        >
+          <nz-option
+            *ngFor="let m of mimeOptions"
+            [nzValue]="m.value"
+            [nzLabel]="m.label"
+          ></nz-option>
+        </nz-select>
+      </nz-form-control>
+    </nz-form-item>
+
+    <nz-form-item>
+      <nz-form-control>
+        <button
+          nz-button
+          nzType="default"
+          [nzLoading]="isDryRunLoading"
+          (click)="doDryRun()"
+          style="margin-right: 8px;"
+        >
+          <i nz-icon nzType="eye"></i>
+          试运行
+        </button>
+        <span style="font-size: 12px; color: #8c8c8c;">
+          先列出将要删除的资源，不实际删除
+        </span>
+      </nz-form-control>
+    </nz-form-item>
+
+    <nz-alert
+      nzType="warning"
+      nzShowIcon
+      nzMessage="清理任务执行后，资源将在 5 分钟延迟后真正删除（等待访问结束）"
+    ></nz-alert>
+  </form>
+</nz-modal>
+
+<nz-modal
+  [(nzVisible)]="dryRunVisible"
+  nzTitle="试运行结果"
+  [nzWidth]="700"
+  nzOkText="确认执行"
+  nzCancelText="取消"
+  [nzOkType]="'danger'"
+  (nzOnOk)="confirmFromDryRun()"
+  (nzOnCancel)="closeDryRun()"
+>
+  <div *ngIf="dryRunResult">
+    <nz-alert
+      nzType="info"
+      nzShowIcon
+      nzMessage="以下是将要被清理的资源预览"
+      style="margin-bottom: 16px;"
+    ></nz-alert>
+
+    <div style="display: flex; gap: 24px; margin-bottom: 16px;">
+      <div style="flex: 1; padding: 16px; background: #fff7e6; border-radius: 8px; text-align: center;">
+        <div style="font-size: 12px; color: #8c8c8c; margin-bottom: 4px;">将清理资源数</div>
+        <div style="font-size: 24px; font-weight: 600; color: #fa8c16;">
+          {{ dryRunResult.total_resources }}
+        </div>
+      </div>
+      <div style="flex: 1; padding: 16px; background: #f6ffed; border-radius: 8px; text-align: center;">
+        <div style="font-size: 12px; color: #8c8c8c; margin-bottom: 4px;">预计释放空间</div>
+        <div style="font-size: 24px; font-weight: 600; color: #52c41a;">
+          {{ dryRunResult.estimated_savings_gb.toFixed(2) }} GB
+        </div>
+      </div>
+    </div>
+
+    <nz-table
+      [nzData]="dryRunResult.resources.slice(0, 10)"
+      nzSize="small"
+      [nzFrontPagination]="false"
+      [nzShowPagination]="false"
+    >
+      <thead>
+        <tr>
+          <th>资源名称</th>
+          <th>所在节点</th>
+          <th>大小</th>
+          <th>最近访问</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of dryRunResult.resources.slice(0, 10)">
+          <td>{{ r.resource_name }}</td>
+          <td>{{ r.node_name }}</td>
+          <td>{{ formatSize(r.size_bytes) }}</td>
+          <td style="font-size: 12px; color: #8c8c8c;">
+            {{ r.last_accessed ? (r.last_accessed | date: 'yyyy-MM-dd HH:mm') : '从未访问' }}
+          </td>
+        </tr>
+      </tbody>
+    </nz-table>
+
+    <div *ngIf="dryRunResult.total_resources > 10" style="text-align: center; margin-top: 12px; color: #8c8c8c;">
+      共 {{ dryRunResult.total_resources }} 条，仅显示前 10 条
+    </div>
+  </div>
+</nz-modal>

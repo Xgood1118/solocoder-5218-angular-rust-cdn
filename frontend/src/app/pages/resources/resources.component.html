@@ -1,0 +1,201 @@
+<div class="page-container">
+  <div class="toolbar">
+    <h2 class="page-title">资源管理</h2>
+    <div class="toolbar-right">
+      <nz-input-group nzSearch style="width: 300px;" [nzAddOnAfter]="suffixButton">
+        <input
+          type="text"
+          nz-input
+          placeholder="搜索资源名称、路径..."
+          [(ngModel)]="searchText"
+          (keyup.enter)="onSearch()"
+        />
+        <ng-template #suffixButton>
+          <button nz-button nzType="primary" (click)="onSearch()">
+            <i nz-icon nzType="search"></i>
+          </button>
+        </ng-template>
+      </nz-input-group>
+      <button nz-button nzType="primary" (click)="openUpload()">
+        <i nz-icon nzType="upload"></i>
+        上传资源
+      </button>
+    </div>
+  </div>
+
+  <div nz-row [nzGutter]="16">
+    <div nz-col [nzSpan]="6">
+      <div class="tree-panel">
+        <div style="font-weight: 600; margin-bottom: 12px;">目录树</div>
+        <nz-tree
+          [nzData]="treeNodes"
+          (nzClick)="onTreeNodeClick($event)"
+          nzExpandAll
+        ></nz-tree>
+      </div>
+    </div>
+
+    <div nz-col [nzSpan]="18">
+      <div class="content-panel">
+        <nz-table
+          #basicTable
+          [nzData]="resources"
+          [nzLoading]="loading"
+          [nzFrontPagination]="false"
+          [nzTotal]="total"
+          [nzPageSize]="pageSize"
+          [nzPageIndex]="page"
+          (nzPageIndexChange)="onPageChange($event)"
+          nzSize="small"
+        >
+          <thead>
+            <tr>
+              <th>文件名</th>
+              <th>大小</th>
+              <th>类型</th>
+              <th>业务线</th>
+              <th>命中率</th>
+              <th>发布节点</th>
+              <th>上传时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of resources">
+              <td>
+                <div style="display: flex; align-items: center;">
+                  <i
+                    nz-icon
+                    [nzType]="getMimeIcon(item.resource.mime_type)"
+                    style="margin-right: 8px; color: #1890ff;"
+                  ></i>
+                  <span
+                    style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                    [nzTooltipTitle]="item.resource.original_filename"
+                    nz-tooltip
+                  >
+                    {{ item.resource.original_filename }}
+                  </span>
+                </div>
+              </td>
+              <td>{{ formatSize(item.resource.size_bytes) }}</td>
+              <td>
+                <nz-tag nzColor="blue">{{ item.resource.mime_type.split('/')[0] }}</nz-tag>
+              </td>
+              <td>{{ item.resource.business_line }}</td>
+              <td>
+                <nz-progress
+                  [nzPercent]="item.hit_rate * 100"
+                  nzSize="small"
+                  [nzShowInfo]="false"
+                  style="width: 80px; display: inline-block; vertical-align: middle; margin-right: 8px;"
+                ></nz-progress>
+                <span style="font-size: 12px;">{{ formatPercent(item.hit_rate) }}</span>
+              </td>
+              <td>
+                <nz-tag>{{ item.published_nodes.length }} 个</nz-tag>
+              </td>
+              <td style="font-size: 12px; color: #8c8c8c;">
+                {{ item.resource.uploaded_at | date: 'yyyy-MM-dd HH:mm' }}
+              </td>
+              <td>
+                <a (click)="viewVersions(item.resource.id)">版本</a>
+                <nz-divider nzType="vertical"></nz-divider>
+                <a (click)="openPublish(item.resource.id)">发布</a>
+                <nz-divider nzType="vertical"></nz-divider>
+                <a style="color: #ff4d4f;" (click)="deleteResource(item)">删除</a>
+              </td>
+            </tr>
+          </tbody>
+        </nz-table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<nz-modal
+  [(nzVisible)]="uploadVisible"
+  nzTitle="批量上传资源"
+  [nzWidth]="600"
+  nzOkText="关闭"
+  [nzFooter]="null"
+  (nzOnCancel)="closeUpload()"
+>
+  <nz-upload
+    nzType="drag"
+    [nzMultiple]="true"
+    [nzShowUploadList]="true"
+    [nzBeforeUpload]="beforeUpload"
+    [nzCustomRequest]="customUpload"
+    (nzChange)="handleUploadChange($event)"
+  >
+    <p class="ant-upload-drag-icon">
+      <i nz-icon nzType="inbox"></i>
+    </p>
+    <p class="ant-upload-text">点击或拖拽文件到此处上传</p>
+    <p class="ant-upload-hint">支持单文件最大 100MB，支持图片、视频、字体、JS、CSS、JSON 等格式</p>
+  </nz-upload>
+</nz-modal>
+
+<nz-modal
+  [(nzVisible)]="versionVisible"
+  nzTitle="版本管理"
+  [nzWidth]="700"
+  nzOkText="关闭"
+  (nzOnCancel)="closeVersions()"
+  [nzFooter]="null"
+>
+  <nz-table [nzData]="versions" nzSize="small" [nzFrontPagination]="false">
+    <thead>
+      <tr>
+        <th>版本号</th>
+        <th>文件名</th>
+        <th>大小</th>
+        <th>SHA256</th>
+        <th>上传时间</th>
+        <th>上传人</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let v of versions">
+        <td><nz-tag nzColor="blue">{{ v.version }}</nz-tag></td>
+        <td>{{ v.original_filename }}</td>
+        <td>{{ formatSize(v.size_bytes) }}</td>
+        <td style="font-family: monospace; font-size: 11px;">
+          {{ v.sha256.substring(0, 16) }}...
+        </td>
+        <td>{{ v.uploaded_at | date: 'yyyy-MM-dd HH:mm' }}</td>
+        <td>{{ v.uploaded_by }}</td>
+      </tr>
+    </tbody>
+  </nz-table>
+</nz-modal>
+
+<nz-modal
+  [(nzVisible)]="publishVisible"
+  nzTitle="发布资源到节点"
+  [nzWidth]="500"
+  nzOkText="发布"
+  nzCancelText="取消"
+  (nzOnOk)="doPublish()"
+  (nzOnCancel)="closePublish()"
+>
+  <div class="modal-form-item">
+    <label class="modal-form-label">选择目标节点</label>
+    <nz-select
+      nzMode="multiple"
+      style="width: 100%;"
+      nzPlaceHolder="请选择节点"
+      [(ngModel)]="publishNodeIds"
+    >
+      <nz-option
+        *ngFor="let node of nodes"
+        [nzValue]="node.value"
+        [nzLabel]="node.label"
+      ></nz-option>
+    </nz-select>
+  </div>
+  <div style="color: #8c8c8c; font-size: 12px;">
+    选择要将资源发布到的边缘节点，资源将被缓存到这些节点上
+  </div>
+</nz-modal>

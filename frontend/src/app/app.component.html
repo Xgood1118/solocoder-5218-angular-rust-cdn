@@ -1,0 +1,47 @@
+<nz-layout style="min-height: 100vh">
+  <nz-sider nzCollapsible [(nzCollapsed)]="isCollapsed" [nzTrigger]="null" nzWidth="220">
+    <div class="logo">
+      <span style="color: #fff; font-size: 18px; font-weight: bold; margin-left: 16px;">
+        {{ isCollapsed ? 'CDN' : 'CDN 管理后台' }}
+      </span>
+    </div>
+    <ul nz-menu nzTheme="dark" nzMode="inline" [nzInlineCollapsed]="isCollapsed">
+      <li nz-menu-item routerLink="/dashboard" routerLinkActive="ant-menu-item-selected">
+        <i nz-icon nzType="dashboard" nzTheme="outline"></i>
+        <span>统计概览</span>
+      </li>
+      <li nz-menu-item routerLink="/resources" routerLinkActive="ant-menu-item-selected">
+        <i nz-icon nzType="file" nzTheme="outline"></i>
+        <span>资源管理</span>
+      </li>
+      <li nz-menu-item routerLink="/nodes" routerLinkActive="ant-menu-item-selected">
+        <i nz-icon nzType="cloud-server" nzTheme="outline"></i>
+        <span>节点管理</span>
+      </li>
+      <li nz-menu-item routerLink="/preheat" routerLinkActive="ant-menu-item-selected">
+        <i nz-icon nzType="rocket" nzTheme="outline"></i>
+        <span>预热管理</span>
+      </li>
+      <li nz-menu-item routerLink="/purge" routerLinkActive="ant-menu-item-selected">
+        <i nz-icon nzType="delete" nzTheme="outline"></i>
+        <span>清理管理</span>
+      </li>
+    </ul>
+  </nz-sider>
+  <nz-layout>
+    <nz-header style="background: #fff; padding: 0 24px; box-shadow: 0 1px 4px rgba(0,21,41,.08);">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center;">
+          <i nz-icon nzType="menu" style="font-size: 20px; cursor: pointer;" (click)="isCollapsed = !isCollapsed"></i>
+        </div>
+        <div>
+          <nz-avatar nzIcon="user" [nzStyle]="{ backgroundColor: '#1890ff' }"></nz-avatar>
+          <span style="margin-left: 8px;">管理员</span>
+        </div>
+      </div>
+    </nz-header>
+    <nz-content style="margin: 0; background: #f0f2f5;">
+      <router-outlet></router-outlet>
+    </nz-content>
+  </nz-layout>
+</nz-layout>
