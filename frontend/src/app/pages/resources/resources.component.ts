@@ -9,7 +9,7 @@ import {
   Resource,
 } from '../../services/resource.service';
 import { NodeService } from '../../services/node.service';
-import { NzFormatEmitEvent, NzTreeNode } from 'ng-zorro-antd/tree';
+import { NzFormatEmitEvent, NzTreeNodeOptions } from 'ng-zorro-antd/tree';
 import { HttpResponse } from '@angular/common/http';
 
 @Component({
@@ -25,7 +25,7 @@ export class ResourcesComponent implements OnInit {
   searchText = '';
   selectedDirectory = '/';
 
-  treeNodes: NzTreeNode[] = [];
+  treeNodes: NzTreeNodeOptions[] = [];
   directoryTree?: DirectoryNode;
 
   uploadVisible = false;
@@ -84,7 +84,7 @@ export class ResourcesComponent implements OnInit {
     });
   }
 
-  buildTreeNodes(node: DirectoryNode): NzTreeNode[] {
+  buildTreeNodes(node: DirectoryNode): NzTreeNodeOptions[] {
     return node.children.map((child) => ({
       title: child.name,
       key: child.path,

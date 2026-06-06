@@ -4,12 +4,13 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 
-import { NgZorroAntdModule, NZ_I18N, zh_CN } from 'ng-zorro-antd';
+import { NZ_I18N, zh_CN } from 'ng-zorro-antd/i18n';
 import { NzLayoutModule } from 'ng-zorro-antd/layout';
 import { NzMenuModule } from 'ng-zorro-antd/menu';
 import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NzTableModule } from 'ng-zorro-antd/table';
 import { NzInputModule } from 'ng-zorro-antd/input';
+import { NzInputNumberModule } from 'ng-zorro-antd/input-number';
 import { NzSelectModule } from 'ng-zorro-antd/select';
 import { NzModalModule } from 'ng-zorro-antd/modal';
 import { NzMessageModule } from 'ng-zorro-antd/message';
@@ -26,10 +27,19 @@ import { NzAvatarModule } from 'ng-zorro-antd/avatar';
 import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
 import { NzRadioModule } from 'ng-zorro-antd/radio';
-import { NzSliderModule } from 'ng-zorro-antd/slider';
 import { NzToolTipModule } from 'ng-zorro-antd/tooltip';
 import { NzDividerModule } from 'ng-zorro-antd/divider';
 import { NzDropDownModule } from 'ng-zorro-antd/dropdown';
+import { NzFormModule } from 'ng-zorro-antd/form';
+import { NzListModule } from 'ng-zorro-antd/list';
+import { NzSpinModule } from 'ng-zorro-antd/spin';
+import { NzAlertModule } from 'ng-zorro-antd/alert';
+import { NzSpaceModule } from 'ng-zorro-antd/space';
+import { NzDescriptionsModule } from 'ng-zorro-antd/descriptions';
+import { NzPopconfirmModule } from 'ng-zorro-antd/popconfirm';
+import { NzEmptyModule } from 'ng-zorro-antd/empty';
+import { NzPageHeaderModule } from 'ng-zorro-antd/page-header';
+import { NzSkeletonModule } from 'ng-zorro-antd/skeleton';
 
 import { NgxEchartsModule } from 'ngx-echarts';
 import * as echarts from 'echarts';
@@ -63,12 +73,12 @@ registerLocaleData(zh);
     ReactiveFormsModule,
     HttpClientModule,
     AppRoutingModule,
-    NgZorroAntdModule,
     NzLayoutModule,
     NzMenuModule,
     NzButtonModule,
     NzTableModule,
     NzInputModule,
+    NzInputNumberModule,
     NzSelectModule,
     NzModalModule,
     NzMessageModule,
@@ -85,10 +95,19 @@ registerLocaleData(zh);
     NzIconModule,
     NzCheckboxModule,
     NzRadioModule,
-    NzSliderModule,
     NzToolTipModule,
     NzDividerModule,
     NzDropDownModule,
+    NzFormModule,
+    NzListModule,
+    NzSpinModule,
+    NzAlertModule,
+    NzSpaceModule,
+    NzDescriptionsModule,
+    NzPopconfirmModule,
+    NzEmptyModule,
+    NzPageHeaderModule,
+    NzSkeletonModule,
     NgxEchartsModule.forRoot({ echarts }),
   ],
   providers: [{ provide: NZ_I18N, useValue: zh_CN }],

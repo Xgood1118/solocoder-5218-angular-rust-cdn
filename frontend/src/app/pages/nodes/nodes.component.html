@@ -128,7 +128,7 @@
       <nz-form-label nzRequired>所在区域</nz-form-label>
       <nz-form-control>
         <nz-select [(ngModel)]="createForm.region" name="region" style="width: 100%;">
-          <nz-option *ngFor="let r of REGIONS" [nzValue]="r" [nzLabel]="r"></nz-option>
+          <nz-option *ngFor="let r of allRegions" [nzValue]="r" [nzLabel]="r"></nz-option>
         </nz-select>
       </nz-form-control>
     </nz-form-item>
@@ -142,7 +142,7 @@
       <nz-form-label nzRequired>运营商</nz-form-label>
       <nz-form-control>
         <nz-select [(ngModel)]="createForm.carrier" name="carrier" style="width: 100%;">
-          <nz-option *ngFor="let c of CARRIERS" [nzValue]="c" [nzLabel]="c"></nz-option>
+          <nz-option *ngFor="let c of carriers" [nzValue]="c" [nzLabel]="c"></nz-option>
         </nz-select>
       </nz-form-control>
     </nz-form-item>

@@ -23,6 +23,8 @@ export class NodesComponent implements OnInit {
   selectedStatus?: string;
 
   regions = ['全部', ...REGIONS];
+  allRegions = REGIONS;
+  carriers = CARRIERS;
   statuses = [
     { label: '全部', value: '' },
     { label: '在线', value: 'online' },
